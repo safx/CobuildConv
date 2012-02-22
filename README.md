@@ -1,6 +1,4 @@
 
-## What is this
-
 CobuildConv is a tool for converting data of a CD-ROM titled
 'Collins COBUILD Advanced Leaner's English Dictionary NEW
 EDITION' to data for Dictionay.app. The original source of
@@ -11,7 +9,7 @@ http://www31.ocn.ne.jp/~h_ishida/CobuildConv/index.html (in Japanese).
 
 * COBUILD5 CD-ROM
 
-    mounted at /Volumes/COBULD
+    mounted at /Volumes/COBULD5
 
 * Xcode
     * Dictionary Development Kit
