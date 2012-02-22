@@ -8,7 +8,7 @@
 
 TARGET=conv
 SOURCE=CobuildConv.cpp
-COBUILD=/Volumes/COBUILD/hcp_en-cc5.trd
+COBUILD=/Volumes/COBUILD5/data/hcp_en-cc5.trd
 
 # You need to edit these values.
 

@@ -7,8 +7,8 @@
 //		-w ... WordBank
 //
 //	例
-//		CobuildConv "/Volumes/COBUILDS/data/hcp_en-wbk.trd" 
-//		CobuildConv "/Volumes/COBUILDS/data/hcp_en-cc5.trd" -w
+//		CobuildConv "/Volumes/COBUILD5/data/hcp_en-cc5.trd"
+//		CobuildConv "/Volumes/COBUILD5/data/hcp_en-wbk.trd" -w 
 //
 
 #include <cstdio>

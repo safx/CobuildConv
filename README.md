@@ -9,14 +9,20 @@ http://www31.ocn.ne.jp/~h_ishida/CobuildConv/index.html (in Japanese).
 
 ## Prerequisition
 
+* COBUILD5 CD-ROM
+
+    mounted at /Volumes/COBULD
+
 * Xcode
     * Dictionary Development Kit
 
           please make sure the directory '/Developer/Extras/Dictionary Development Kit' exists
 
-## How to use
+## How to install
 
     > make
     > make xml
     > make dic
     > make install
+
+And then you launch Dictionary.app to test the new dictionary.
