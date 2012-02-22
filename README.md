@@ -19,7 +19,6 @@ http://www31.ocn.ne.jp/~h_ishida/CobuildConv/index.html (in Japanese).
 ## How to install
 
     > make
-    > make xml
     > make dic
     > make install
 
