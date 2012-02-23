@@ -44,6 +44,10 @@ span.graminfo {
 	padding: 0 0.5em 0.1em 0.5em;
 }
 
+p.synonyms, p.antonyms {
+    color: #ff6060;
+}
+
 li {
 	font-size: 90%;
     font-family: Optima;

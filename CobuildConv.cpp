@@ -516,7 +516,7 @@ std::string decode( FILE *fp )
 		case 'S': // 記号
 			p += 3;
             if ( strncmp( &*p, "TCdiam", 6 ) == 0 ){ // 使用頻度のダイヤ
-                tagbuf2 += "&#xE000;";
+                tagbuf2 += "♦";
 			}
 			while( *p != '>' ){
 				p++;
@@ -638,6 +638,7 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 		}
 		if ( Flg2 & 0x08 ){ // 品詞
             std::string dummy = decode( fp );
+            // never come to here
 		}
 		if ( Flg2 & 0x10 ){ // 変化形
             assert( ! title.empty());
@@ -661,7 +662,7 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 			if ( ! syntax.empty() ) { syntax += "<br />"; }
             syntax += decode( fp );
 		}
-		if ( Flg2 & 0x04 ){ // 分綴
+		if ( Flg2 & 0x04 ){ // 分綴??
 			hyphen = decode( fp );
 		}
 		if ( Flg2 & 0x08 ){ // 注釈
@@ -692,13 +693,12 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 	if ( !is_wordbank ){ // 見出し
 		if ( ! hyphen.empty() ){
             work = hyphen;
-		} else {
-            work = title;
 		}
 		
 		if ( ! phonetic.empty() ){ // 発音記号
-            work += ' ';
+            work += " <span class=\"phonetic\">";
             work += phonetic;
+            work += "</span>";
 		}
 
 		if ( ! variation.empty() ){ // 変化形
@@ -713,9 +713,8 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 		}
 		
 		if ( ! note.empty() ){ // 注釈
-			work += " <sub>";
+			work += "<br />";
 			work += note;
-			work += "</sub>";
 		}
 		
 		// 見出しを書く
@@ -729,22 +728,33 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
         } else {
             g_id[title] = 1;
         }
+
         fprintf( OutFp, "<d:entry id=\"%s\" d:title=\"%s\" >\n", id.c_str(), title.c_str() );
 		
         for (std::vector<std::string>::const_iterator it = variation.begin(), end = variation.end(); it != end; ++it) {
-            if ((*it)[0] != '/') // TODO: 先頭が / なら発音なので追加しない
-            fprintf( OutFp, "<d:index d:value=\"%s\" />\n", it->c_str());
+            if ((*it)[0] == '/') {
+                // 先頭が / なら発音
+                //fprintf( OutFp, "<span class=\"pron\">%s</span>\n", it->c_str());
+            } else {
+                fprintf( OutFp, "<d:index d:value=\"%s\" />\n", it->c_str());
+            }
         }
-        work += ")";
-        
-		fprintf( OutFp, "<h1>%s</h1>\n", title.c_str() );		
+
+        // ^1 などに対処
+        std::string ptitle(title);
+        size_t len = ptitle.size();
+        if (len > 3 && ptitle[len-2] == '^') {
+            ptitle = ptitle.substr(0, len-2) + "<sup>" + ptitle[len-1] + "</sup>";
+            //printf("%s %s\n", title.c_str(), ptitle.c_str());
+        }
+		fprintf( OutFp, "<h1>%s</h1><span class=\"info\">%s</span>\n", ptitle.c_str(), work.c_str() );
 
 		if ( ! syntax.empty() ){
 			fprintf( OutFp, "<p>%s</p>\n", syntax.c_str() );
 		}
 	}
 	
-	for (int i = 0; i < HonbunNum; ++i){ // 本文
+	for (int i = 0; i < HonbunNum; ++i) { // 本文
         std::string subtitle;
         std::string hinshi;
         std::string subno;
@@ -800,7 +810,7 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 				std::string dummy = decode( fp );
                 // never come to here
 			}
-			if ( Flg2 & 0x10 ){ // 用法
+			if ( Flg2 & 0x10 ){ // 用法: disapproval, emphasis, etc
 				std::string dummy = decode( fp );
                 if ( ! dummy.empty()) {
                     //printf("YH %s\n", dummy.c_str());
@@ -811,9 +821,6 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 			}
 			if ( Flg2 & 0x80 ){ // 番号または記号
 				subno = decode( fp );
-				if ( subno == "@" ){
-					subno = "・";
-                }
 			}
 		}
 
@@ -823,32 +830,35 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 		}
 		
 		/* 小見出しを書く */
-		if ( ! is_wordbank) {
-            std::string work;
-            if ( ! subno.empty() ){
+        std::string work;
+        if ( ! subno.empty() ){
+            if ( subno == "@" ){
+                subno = "♦";
+            } else {
                 work = "<span class=\"subno\">" + subno + "</span>";
             }
-            if ( ! subtitle.empty() ){
-                if ( ! work.empty() ) { work += ' '; }
-                work += subtitle;
-            }
-            if ( ! hinshi.empty() ){
-                if ( ! work.empty() ) { work += ' '; }
-                work += hinshi;
-            }
-            if ( ! explain.empty() ){
-                if ( ! work.empty() ) { work += ' '; }
-                work += "<span class=\"graminfo\">" + explain + "</span>";
-            }
-            if ( ! work.empty() ){
-                fprintf( OutFp, "<p>%s</p>\n", work.c_str() );
-            }
+        }
+        if ( ! subtitle.empty() ){
+            if ( ! work.empty() ) { work += ' '; }
+            work += subtitle;
+        }
+        if ( ! hinshi.empty() ){
+            if ( ! work.empty() ) { work += ' '; }
+            work += hinshi;
+        }
+        if ( ! explain.empty() ){
+            if ( ! work.empty() ) { work += ' '; }
+            work += "<span class=\"graminfo\">" + explain + "</span>";
+        }
+		if ( ! is_wordbank && ! work.empty() ){
+            fprintf( OutFp, "<p>%s</p>\n", work.c_str() );
         }
 		
 		/* 0x04 */
 		if ( Flg1 & 0x04 ){
 			const char Flg2 = fgetc( fp );
 			std::string dummy = decode( fp );
+            // never come to here
 		}
 		/* 本文 */
 		if ( Flg1 & 0x10 ){
@@ -878,22 +888,23 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 			}
 			if ( Flg2 & 0x04 ){ // 表
 			}
-			if ( Flg2 & 0x08 ){ // 参照
+			if ( Flg2 & 0x08 ){ // 参照 ex: "BRIT; in AM, use <b>rambunctious</b>"
 				const int cnt = fgetc( fp );
 				for (int j = 0; j < cnt; ++j){
 					std::string dummy = decode( fp );
+                    //printf("%s\n", dummy.c_str() );
 				}
 			}
 			if ( Flg2 & 0x10 ){ // ？？
 				const int cnt = fgetc( fp );
 				for (int j = 0; j < cnt; ++j){
                     std::string t = decode( fp );
-					fprintf( OutFp, "<p>  <i>%s</i></p>\n", t.c_str() );
+					fprintf( OutFp, "  <p><i>%s</i></p>\n", t.c_str() );
 				}
 			}
 			if ( Flg2 & 0x40 ){ // 参照
                 std::string t = decode( fp );
-				fprintf( OutFp, "<p>  %s</p>\n", t.c_str() );
+				fprintf( OutFp, "  <p>%s</p>\n", t.c_str() );
 			}
 		}
 		/* 関連語 */
@@ -901,11 +912,11 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 			const char Flg2 = fgetc( fp );
 			if ( Flg2 & 0x01 ){ // 同義語
                 std::string t = decode( fp );
-				fprintf( OutFp, "<p>  ＝%s</p>\n", t.c_str() );
+				fprintf( OutFp, "  <p class=\"synonyms\">＝ %s</p>\n", t.c_str() );
 			}
 			if ( Flg2 & 0x02 ){ // 同義語
                 std::string t = decode( fp );
-				fprintf( OutFp, "<p>  ⇔%s</p>\n", t.c_str() );
+				fprintf( OutFp, "  <p class=\"antonyms\">⇔ %s</p>\n", t.c_str() );
 			}
 		}
 		/* 画像 */
