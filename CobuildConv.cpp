@@ -757,18 +757,18 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 		if ( Flg1 & 0x01 ){ // 小見出し
 			const char Flg2 = fgetc( fp );
 			if ( Flg2 & 0x01 ){ // 見出し: 小見出しは定義語とする
-                subtitle = "<dfn>";
+                subtitle = "<span class=\"subtitle\">";
                 subtitle += decode( fp );
-                subtitle += "</dfn>";
+                subtitle += "</span>";
 			}
 			if ( Flg2 & 0x02 ){ // 別見出し
 				if ( ! subtitle.empty()) { subtitle += ' '; }
                 subtitle += decode( fp );
 			}
-			if ( Flg2 & 0x08 ){ // 品詞
-				hinshi = '[';
+			if ( Flg2 & 0x08 ){ // 品詞; Word Class
+				hinshi = "<span class=\"wordclass\">";
                 hinshi += decode( fp );
-                hinshi += ']';
+                hinshi += ":</span>";
 			}
 			if ( Flg2 & 0x10 ){ // 変化形
 				std::string dummy = decode( fp );
@@ -783,7 +783,7 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 		// 用法
 		if ( Flg1 & 0x02 ){
 			const char Flg2 = fgetc( fp );
-			if ( Flg2 & 0x01 ){ // 特記事項
+			if ( Flg2 & 0x01 ){ // 特記事項; Alternative forms
 				alternative = decode( fp );
 			}
 			if ( Flg2 & 0x02 ){ // 異形
@@ -813,36 +813,37 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 				subno = decode( fp );
 				if ( subno == "@" ){
 					subno = "・";
-				}
+                }
 			}
 		}
 
 		/* 特記事項を書く */
 		if ( ! alternative.empty() ){
-			fprintf( OutFp, "<p>%s</p>\n", alternative.c_str() );
+			fprintf( OutFp, "<span class=\"alternative\"><p>%s</p></span>\n", alternative.c_str() );
 		}
 		
 		/* 小見出しを書く */
-		if ( ! subno.empty() ){
-            work = subno;
-		} else {
-            work = "";
-		}
-		if ( ! subtitle.empty() ){
-			if ( ! work.empty() ) { work += ' '; }
-			work += subtitle;
+		if ( ! is_wordbank) {
+            std::string work;
+            if ( ! subno.empty() ){
+                work = "<span class=\"subno\">" + subno + "</span>";
+            }
+            if ( ! subtitle.empty() ){
+                if ( ! work.empty() ) { work += ' '; }
+                work += subtitle;
+            }
+            if ( ! hinshi.empty() ){
+                if ( ! work.empty() ) { work += ' '; }
+                work += hinshi;
+            }
+            if ( ! explain.empty() ){
+                if ( ! work.empty() ) { work += ' '; }
+                work += "<span class=\"graminfo\">" + explain + "</span>";
+            }
+            if ( ! work.empty() ){
+                fprintf( OutFp, "<p>%s</p>\n", work.c_str() );
+            }
         }
-		if ( ! hinshi.empty() ){
-			if ( ! work.empty() ) { work += ' '; }
-			work += hinshi;
-		}
-		if ( ! explain.empty() ){
-			if ( ! work.empty() ) { work += ' '; }
-			work += explain;
-		}
-		if ( !is_wordbank && ! work.empty() ){
-			fprintf( OutFp, "<p>%s</p>\n", work.c_str() );
-		}
 		
 		/* 0x04 */
 		if ( Flg1 & 0x04 ){
@@ -857,16 +858,23 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 				fprintf( OutFp, "  <p>%s</p>\n", t.c_str());
 			}
 			if ( Flg2 & 0x02 ){ // 例文
-				const int cnt = fgetc( fp );
-				for (int j = 0; j < cnt; ++j){
-                    std::string t = decode( fp );
-					if ( is_wordbank ){
+				const int cnt = fgetc(fp);
+                if ( is_wordbank ){
+                    for (int j = 0; j < cnt; ++j){
+                        std::string t = decode(fp);
 						fprintf( OutFp, "<dt>%s</dt>\n", title.c_str());
 						fprintf( OutFp, "<dd><p>%s</p></dd>\n", t.c_str());
-					} else {
-						fprintf( OutFp, "  <p><i>%s</i></p>\n", t.c_str());
 					}
-				}
+				} else {
+                    std::string examples;
+                    for (int j = 0; j < cnt; ++j){
+                        std::string t = decode(fp);
+                        examples += "<li>";
+                        examples += t;
+                        examples += "</li>";
+                    }
+                    fprintf( OutFp, "  <ul>%s</ul>\n", examples.c_str());
+                }
 			}
 			if ( Flg2 & 0x04 ){ // 表
 			}

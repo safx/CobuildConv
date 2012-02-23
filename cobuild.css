@@ -12,6 +12,14 @@ h3	{
 	font-size: 100%;
 }
 
+span.subno {
+	border: solid 2px #6060ff;
+	font-size: 90%;
+    font-family: Monaco;
+    color: blue;
+	padding: 0 0.3em;
+}
+
 span.column {
 	display: block;
 	border: solid 2px #c0c0c0;
@@ -20,4 +28,24 @@ span.column {
 	margin-top: 0.5em;
 	margin-bottom: 0.5em;
 	padding: 0.5em;
+}
+
+span.wordclass {
+	font-size: 80%;
+    font-family: Helvetica;
+    color: blue;
+	padding: 0 0 0.1em 1em;
+}
+
+span.graminfo {
+	font-size: 80%;
+    font-family: Helvetica;
+    color: blue;
+	padding: 0 0.5em 0.1em 0.5em;
+}
+
+li {
+	font-size: 90%;
+    font-family: Optima;
+    font-style:  Oblique;
 }
