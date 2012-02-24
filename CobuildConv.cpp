@@ -300,68 +300,66 @@ std::string decode( FILE *fp )
 	}
 
 	/* 平文に変換する */
-    std::string::const_iterator p = compbuf.begin();
+    std::string::const_iterator p;
     std::string ascbuf;
     ascbuf.reserve(4096);
-	while (*p){
+	for (p = compbuf.begin(); *p; ++p){
 		if ( *p < 40 ){ // 英小文字・通常記号
 			ascbuf += DecodeChar( *p, CTable );
 		} else if ( *p == 40 ){ // grave
-			p++;
+			++p;
 			ascbuf += DecodeChar( *p, GrTable );
 		} else if ( *p == 41 ){ // acute
-			p++;
+			++p;
 			ascbuf += DecodeChar( *p, AcTable );
 		} else if ( *p == 42 ){ // circ
-			p++;
+			++p;
 			ascbuf += DecodeChar( *p, CiTable );
 		} else if ( *p == 43 ){ // tilde
-			p++;
+			++p;
 			ascbuf += DecodeChar( *p, TiTable );
 		} else if ( *p == 44 ){ // umlaut
-			p++;
+			++p;
 			ascbuf += DecodeChar( *p, UmTable );
 		} else if ( *p == 47 ){ // Latin
-			p++;
+			++p;
 			ascbuf += DecodeChar( *p, LaTable );
 		} else if ( *p == 49 ){ // Cedil
-			p++;
+			++p;
 			ascbuf += DecodeChar( *p, CeTable );
 		} else if ( *p == 50 ){ // Slash
-			p++;
+			++p;
 			ascbuf += DecodeChar( *p, SlTable );
 		} else if ( *p == 51 ){ // elig
-			p++;
+			++p;
 			ascbuf += DecodeChar( *p, ElTable );
 		} else if ( *p == 52 ){ // ギリシャ文字
-			p++;
+			++p;
 			ascbuf += DecodeChar( *p, GkTable );
 		} else if ( *p == 58 ){ // Latin2
-			p++;
+			++p;
 			ascbuf += DecodeChar( *p, La2Table );
 		} else if ( *p == 59 ){ // 記号
-			p++;
+			++p;
 			ascbuf += DecodeChar( *p, SyTable );
 		} else if ( *p == 61 ){ // 英大文字
-			p++;
+			++p;
 			ascbuf += 'A' + *p - 32;
 		} else if ( *p == 62 ){ // 特殊記号
-			p++;
+			++p;
 			ascbuf += DecodeChar( *p, SpTable );
 		} else if ( *p == 63 ){ // UNICODE
 			const unsigned int ucode = ((*(p+1)-1) << 12) + ((*(p+2)-1) << 8) + ((*(p+3)-1) << 4) + (*(p+4)-1);
 			p += 4;
 			ascbuf += DecodeChar( ucode, UnTable );
 		} 
-		p++;
 	}
 
 	/* タグをhtml形式に変換する(その１) */
 	/* 入れ子の外側 */
-	p = ascbuf.begin();
     std::string tagbuf1;
     tagbuf1.reserve(4096);
-	while (*p){
+	for (p = ascbuf.begin(); *p; ++p){
 		if (*p == '<') {
 			if (*(p+1) == 'c') {
 				/* 注釈 */
@@ -372,7 +370,6 @@ std::string decode( FILE *fp )
 					if ( *p == '>' ) n--;
 					tagbuf1 += *p++;
 				}
-				p++;
 				continue;
 			} else if (*(p+1) == 'f') {
 				/* 語句？ */
@@ -383,170 +380,110 @@ std::string decode( FILE *fp )
 					if ( *p == '>' ) n--;
 					tagbuf1 += *p++;
 				}
-				p++;
 				continue;
 			}
 		}	
-		tagbuf1 += *p++;
+		tagbuf1 += *p;
 	}
 
 	/* タグをhtml形式に変換する(その２) */
 	/* 入れ子の内側 */	
-	p = tagbuf1.begin();
     std::string tagbuf2;
     tagbuf2.reserve(4096);
-	while (*p) {
+	for (p = tagbuf1.begin(); *p; ++p) {
 		if (*p != '<') {
-			tagbuf2 += *p++;
+			tagbuf2 += *p;
 			continue;
 		}
 		switch (*(p+1)){
 		case 'b': // 太字
 			tagbuf2 += "<b>";
-			p += 3;
-			while ( *p != '>' ){
-                tagbuf2 += *p++;
-			}
+			for (p += 3; *p != '>'; ++p) { tagbuf2 += *p; }
 			tagbuf2 += "</b>";
-			p++;
 			break;
 		case 'e': // 強調
 			tagbuf2 += "<b>";
-			p += 3;
-			while( *p != '>' ){
-                tagbuf2 += *p++;
-			}
+			for (p += 3; *p != '>'; ++p) { tagbuf2 += *p; }
 			tagbuf2 += "</b>";
-			p++;
 			break;
 		case 'i': // 斜体
 			tagbuf2 += "<i>";
-			p += 3;
-			while( *p != '>' ){
-                tagbuf2 += *p++;
-			}
+			for (p += 3; *p != '>'; ++p) { tagbuf2 += *p; }
 			tagbuf2 += "</i>";
-			p++;
 			break;
 		case 'g': // 文法要素
-			p += 3;
-			while( *p != '>' ){
-                tagbuf2 += *p++;
-			}
-			p++;
+			for (p += 3; *p != '>'; ++p) { tagbuf2 += *p; }
 			break;
 		case 'h': // 分綴文字
             tagbuf2 += "･";
-			p += 3;
+			p += 2;
 			break;
 		case 'm': // ？？？
-			p += 3;
-			while( *p != '>' ){
-				p++;
-			}
-			p++;
+			for (p += 3; *p != '>'; ++p) { }
 			break;
 		case 'n': // AM/STRONG
-			p += 3;
-			while( *p != '>' ){
-                tagbuf2 += *p++;
-			}
-			p++;
+			for (p += 3; *p != '>'; ++p) { tagbuf2 += *p; }
 			break;
 		case 'u': // アンダーライン
             tagbuf2 += '\'';
-			p += 3;
-			while( *p != '>' ){
-                tagbuf2 += *p++;
-			}
-			p++;
+			for (p += 3; *p != '>'; ++p) { tagbuf2 += *p; }
 			break;
 		case 'v': // ？？？
-			p += 3;
-			while( *p != '>' ){
-                tagbuf2 += *p++;
-			}
-			p++;
+			for (p += 3; *p != '>'; ++p) { tagbuf2 += *p; }
 			break;
 		case 'w': // STRONG/WEAK
-			p += 3;
-			while( *p != '>' ){
-				p++;
-			}
-			p++;
+			for (p += 3; *p != '>'; ++p) { }
 			break;
 		case 'x': // 相互参照
 			tagbuf2 += "<b>";
-			p += 3;
-			while( *p != '>' ){
-                tagbuf2 += *p++;
-			}
+			for (p += 3; *p != '>'; ++p) { tagbuf2 += *p; }
 			tagbuf2 += "</b>";
-			p++;
 			break;
 		case 'A':
 		case 'B': // 発音アイコン
-			p += 3;
-			while( *p != '>' ){
-				p++;
-			}
-			p++;
+			for (p += 3; *p != '>'; ++p) { }
 			break;
         case 'D': // <DW>
-            p += 5; // "<DW> ".size()
+            p += 4; // "<DW>".size()
             break;
 		case 'E': // 分綴(発音記号)
 			tagbuf2 += "<sup>";
-			p += 3;
-			while( *p != '>' ){
-                tagbuf2 += *p++;
-			}
+			for (p += 3; *p != '>'; ++p) { tagbuf2 += *p; }
 			tagbuf2 += "</sup>";
-			p++;
 			break;
 		case 'F': // 上付き(発音記号)
 			tagbuf2 += "<sup>";
-			p += 3;
-			while( *p != '>' ){
-                tagbuf2 += *p++;
-			}
+			for (p += 3; *p != '>'; ++p) { tagbuf2 += *p; }
 			tagbuf2 += "</sup>";
-			p++;
 			break;
 		case 'S': // 記号
 			p += 3;
             if ( strncmp( &*p, "TCdiam", 6 ) == 0 ){ // 使用頻度のダイヤ
                 tagbuf2 += "♦";
 			}
-			while( *p != '>' ){
-				p++;
-			}
-			p++;
+			for ( ; *p != '>'; ++p) { }
 			break;
 		case 'q': // 変化形？ 
 		case 'r': // 見出し?
-			p += 3;
+			p += 2;
 			break;
 		default:
-            tagbuf2 += *p++;
+            tagbuf2 += *p;
 		}
 	}
 
 	/* 発音記号を変換する */
-	p = tagbuf2.begin();
     std::string htmtxt;
     htmtxt.reserve(4096);
 	int accent = 0;
-	while (*p){
+	for (p = tagbuf2.begin(); *p; ++p) {
 		if (*p == '<' && *(p+1) == 'p') {
 			int n = 0;
-			p += 3;
-			while (n != 0 || *p != '>') {
+			for (p += 3; n != 0 || *p != '>'; ++p) {
 				if (*p == '<') n++;
 				else if (*p == '>') n--;
 				
 				if ( *p == '\'' ){ // アクセント
-					p++;
 					if ( accent == 0 ){
 						htmtxt += '\'';
 						accent = 2;
@@ -554,15 +491,12 @@ std::string decode( FILE *fp )
 					continue;
 				} else {
 					htmtxt += DecodeChar( *p, PhTable );
-					p++;
 				};
 				if ( accent ) accent--;
 			}
-			p++; // '>'を読み飛ばす
 			continue;
 		}
-
-        htmtxt += *p++;	
+        htmtxt += *p;
 	}
 	
 	return htmtxt;
@@ -1028,4 +962,4 @@ END:
 
 
 // TODO: <b>xx</b> <b>xx</b> でスベース無視される？
-// TODO: css
+
