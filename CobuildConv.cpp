@@ -12,6 +12,7 @@
 //
 
 #include <cstdio>
+#include <fstream>
 #include <string>
 #include <vector>
 #include <map>
@@ -547,7 +548,7 @@ std::vector<std::string> GetVariation(const std::string& var, const std::string&
 //
 //	HTMLに変換する
 //
-int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
+int ConvHtml( FILE *fp, std::ofstream& out, bool is_wordbank )
 {
 	// 本文項目数
 	const int HonbunNum = fgetc( fp );
@@ -663,14 +664,14 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
             g_id[title] = 1;
         }
 
-        fprintf( OutFp, "<d:entry id=\"%s\" d:title=\"%s\" >\n", id.c_str(), title.c_str() );
+        out << "<d:entry id=\"" << id << "\" d:title=\"" << title << "\" >" << std::endl;
 		
         for (std::vector<std::string>::const_iterator it = variation.begin(), end = variation.end(); it != end; ++it) {
             if ((*it)[0] == '/') {
                 // 先頭が / なら発音
                 //fprintf( OutFp, "<span class=\"pron\">%s</span>\n", it->c_str());
             } else {
-                fprintf( OutFp, "<d:index d:value=\"%s\" />\n", it->c_str());
+                out << "<d:index d:value=\"" << *it << "\" />" << std::endl;
             }
         }
 
@@ -681,10 +682,10 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
             ptitle = ptitle.substr(0, len-2) + "<sup>" + ptitle[len-1] + "</sup>";
             //printf("%s %s\n", title.c_str(), ptitle.c_str());
         }
-		fprintf( OutFp, "<h1>%s</h1><span class=\"info\">%s</span>\n", ptitle.c_str(), work.c_str() );
+		out << "<h1>" << ptitle << "</h1><span class=\"info\">" << work << "</span>" << std::endl;
 
 		if ( ! syntax.empty() ){
-			fprintf( OutFp, "<p>%s</p>\n", syntax.c_str() );
+			out <<  "<p>" << syntax << "</p>" << std::endl;
 		}
 	}
 	
@@ -760,7 +761,7 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 
 		/* 特記事項を書く */
 		if ( ! alternative.empty() ){
-			fprintf( OutFp, "<span class=\"alternative\"><p>%s</p></span>\n", alternative.c_str() );
+			out << "<span class=\"alternative\"><p>" << alternative << "</p></span>" << std::endl;
 		}
 		
 		/* 小見出しを書く */
@@ -785,7 +786,7 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
             work += "<span class=\"graminfo\">" + explain + "</span>";
         }
 		if ( ! is_wordbank && ! work.empty() ){
-            fprintf( OutFp, "<p>%s</p>\n", work.c_str() );
+            out << "<p>" << work << "</p>" << std::endl;
         }
 		
 		/* 0x04 */
@@ -798,16 +799,15 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 		if ( Flg1 & 0x10 ){
 			const char Flg2 = fgetc( fp );
 			if ( Flg2 & 0x01 ){ // 意味
-                std::string t = decode( fp );
-				fprintf( OutFp, "  <p>%s</p>\n", t.c_str());
+				out << "  <p>" << decode( fp ) << "</p>" << std::endl;
 			}
 			if ( Flg2 & 0x02 ){ // 例文
 				const int cnt = fgetc(fp);
                 if ( is_wordbank ){
                     for (int j = 0; j < cnt; ++j){
                         std::string t = decode(fp);
-						fprintf( OutFp, "<dt>%s</dt>\n", title.c_str());
-						fprintf( OutFp, "<dd><p>%s</p></dd>\n", t.c_str());
+						out << "<dt>" << title << "</dt>" << std::endl;
+						out << "<dd><p>" << t << "</p></dd>" << std::endl;
 					}
 				} else {
                     std::string examples;
@@ -817,7 +817,7 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
                         examples += t;
                         examples += "</li>";
                     }
-                    fprintf( OutFp, "  <ul>%s</ul>\n", examples.c_str());
+                    out << "  <ul>" << examples << "</ul>" << std::endl;
                 }
 			}
 			if ( Flg2 & 0x04 ){ // 表
@@ -832,25 +832,21 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 			if ( Flg2 & 0x10 ){ // ？？
 				const int cnt = fgetc( fp );
 				for (int j = 0; j < cnt; ++j){
-                    std::string t = decode( fp );
-					fprintf( OutFp, "  <p><i>%s</i></p>\n", t.c_str() );
+					out << "  <p><i>" << decode(fp) << "</i></p>" << std::endl;
 				}
 			}
 			if ( Flg2 & 0x40 ){ // 参照
-                std::string t = decode( fp );
-				fprintf( OutFp, "  <p>%s</p>\n", t.c_str() );
+				out << "  <p>" << decode(fp) << "</p>" << std::endl;
 			}
 		}
 		/* 関連語 */
 		if ( Flg1 & 0x40 ){
 			const char Flg2 = fgetc( fp );
 			if ( Flg2 & 0x01 ){ // 同義語
-                std::string t = decode( fp );
-				fprintf( OutFp, "  <p class=\"synonyms\">＝ %s</p>\n", t.c_str() );
+				out << "  <p class=\"synonyms\">＝ " << decode(fp) << "</p>" << std::endl;
 			}
 			if ( Flg2 & 0x02 ){ // 同義語
-                std::string t = decode( fp );
-				fprintf( OutFp, "  <p class=\"antonyms\">⇔ %s</p>\n", t.c_str() );
+                out << "  <p class=\"antonyms\">⇔ " << decode(fp) << "</p>" << std::endl;
 			}
 		}
 		/* 画像 */
@@ -863,7 +859,7 @@ int ConvHtml( FILE *fp, FILE *OutFp, bool is_wordbank )
 		}
 	}
 	if ( !is_wordbank ){
-		fprintf( OutFp, "</d:entry>\n" );
+		out << "</d:entry>" << std::endl;
 	}
 	
 	return 0;
@@ -892,8 +888,8 @@ int main(int argc, char *argv[])
 
 	/* 出力ファイル */
     const std::string outfile("cobuild.xml");	
-	FILE* OutFp = fopen( outfile.c_str(), "w" );
-	if ( ! OutFp ){
+    std::ofstream out(outfile.c_str(), std::ios_base::binary);
+	if ( ! out.good() ){
 		printf( "出力ファイルがオープンできない\n" );
 		return 1;
 	}
@@ -921,7 +917,7 @@ int main(int argc, char *argv[])
 	fseek( fp, header.IndexPos, SEEK_SET );
 	
 	// ベーステーブルを読む
-	for (int i = 0;i < header.IndexBaseNum; ++i){
+	for (int i = 0; i < header.IndexBaseNum; ++i){
 		fread( &Base[i], 4, 1, fp );
 	}
 
@@ -932,8 +928,8 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	fprintf( OutFp, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" );
-	fprintf( OutFp, "<d:dictionary xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:d=\"http://www.apple.com/DTDs/DictionaryService-1.0.rng\">\n" );
+	out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl;
+    out << "<d:dictionary xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:d=\"http://www.apple.com/DTDs/DictionaryService-1.0.rng\">" << std::endl;
 
 	for (int i = 0; i < header.IndexBaseNum; ++i){
 		for (int j = 0; j < OffsetNum; ++j){
@@ -945,7 +941,7 @@ int main(int argc, char *argv[])
 			if ( st ){
 				printf( "SEEK ERROR: i=%d j=%d\n", i, j );
 			}
-			st = ConvHtml( fp, OutFp, is_wordbank );
+			st = ConvHtml( fp, out, is_wordbank );
 			if ( st ){
 				printf( "CONV ERROR: i=%d j=%d\n", i, j );
 			}
@@ -953,11 +949,11 @@ int main(int argc, char *argv[])
 		}
 	}
 END:
-	fprintf( OutFp, "</d:dictionary>\n" );
+	out << "</d:dictionary>" << std::endl;
 	
 	/* 後始末 */
 	fclose( fp );
-	fclose( OutFp );
+	out.close();
 }
 
 
