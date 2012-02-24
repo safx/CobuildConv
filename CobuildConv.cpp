@@ -11,7 +11,6 @@
 //		CobuildConv "/Volumes/COBUILD5/data/hcp_en-wbk.trd" -w 
 //
 
-#include <cstdio>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -274,23 +273,23 @@ std::string DecodeChar(int c, cTable* Table) {
 //
 //	復号
 //
-std::string decode( FILE *fp )
+std::string decode(std::ifstream& in)
 {
 	/* 6bit毎に分ける */
     std::string compbuf;
     compbuf.reserve(4096);
 	for (;;){
-		const unsigned char c1 = fgetc( fp );
+		const unsigned char c1 = in.get();
 		const unsigned char d1 = ( c1 >> 2 ) & 0x3f;
 		if ( d1 == 0 ) break;
 		compbuf += d1;
 	
-		const unsigned char c2 = fgetc( fp );
+		const unsigned char c2 = in.get();
 		const unsigned char d2 = (( c1 << 4 ) & 0x30) | (( c2 >> 4 ) & 0x0f);
 		if ( d2 == 0 ) break;
 		compbuf += d2;
 		
-		const unsigned char c3 = fgetc( fp );
+		const unsigned char c3 = in.get();
 		const unsigned char d3 = (( c2 << 2 ) & 0x3c) | (( c3 >> 6 ) & 0x03);
 		if ( d3 == 0 ) break;
 		compbuf += d3;
@@ -548,13 +547,13 @@ std::vector<std::string> GetVariation(const std::string& var, const std::string&
 //
 //	HTMLに変換する
 //
-int ConvHtml( FILE *fp, std::ofstream& out, bool is_wordbank )
+void ConvHtml(std::ifstream& in, std::ofstream& out, bool is_wordbank )
 {
 	// 本文項目数
-	const int HonbunNum = fgetc( fp );
+	const int HonbunNum = in.get();
 	
 	// 見出し項目フラグ
-	char Flg1 = fgetc( fp );
+	char Flg1 = in.get();
 
     std::string title;
     std::vector<std::string> variation;
@@ -564,62 +563,62 @@ int ConvHtml( FILE *fp, std::ofstream& out, bool is_wordbank )
     std::string note;
 
 	if ( Flg1 & 0x01 ){ // 見出し
-		const char Flg2 = fgetc( fp );
+		const char Flg2 = in.get();
 		if ( Flg2 & 0x01 ){ // 見出し語
-			title = decode( fp );
+			title = decode(in);
 		}
 		if ( Flg2 & 0x02 ){ // 異形
-            syntax = decode( fp );
+            syntax = decode(in);
 		}
 		if ( Flg2 & 0x08 ){ // 品詞
-            std::string dummy = decode( fp );
+            std::string dummy = decode(in);
             // never come to here
 		}
 		if ( Flg2 & 0x10 ){ // 変化形
             assert( ! title.empty());
-			variation = GetVariation( decode( fp ), title );
+			variation = GetVariation( decode(in), title );
 		}
 		if ( Flg2 & 0x20 ){ // 用法
-			std::string dummy = decode( fp );
+			std::string dummy = decode(in);
             // never come to here
 		}
 		if ( Flg2 & 0x80 ){ // 発音
-			phonetic = decode( fp );
+			phonetic = decode(in);
 		}
 	}
 	if ( Flg1 & 0x02 ){ // 追加データ
-		const char Flg2 = fgetc( fp );
+		const char Flg2 = in.get();
 		if ( Flg2 & 0x01 ){ // 別見出しにした理由
 			if ( ! syntax.empty() ) { syntax += "<br />"; }
-            syntax += decode( fp );
+            syntax += decode(in);
 		}
 		if ( Flg2 & 0x02 ){ // 構文
 			if ( ! syntax.empty() ) { syntax += "<br />"; }
-            syntax += decode( fp );
+            syntax += decode(in);
 		}
 		if ( Flg2 & 0x04 ){ // 分綴??
-			hyphen = decode( fp );
+			hyphen = decode(in);
 		}
 		if ( Flg2 & 0x08 ){ // 注釈
-			note = decode( fp );
+			note = decode(in);
 		}
 		if ( Flg2 & 0x10 ){ // 章節番号
-			std::string dummy = decode( fp );
+			std::string dummy = decode(in);
             // never come to here
 		}
 		if ( Flg2 & 0x20 ){ // 頻度
-			const char dummy = fgetc( fp );
+			const char dummy = in.get();
             // never come to here
 		}
 		
 	}
 	if ( Flg1 & 0x80 ){ // 音声データ
 		for(;;){
-			const char Flg2 = fgetc( fp );
+			const char Flg2 = in.get();
 			if ( Flg2 == 0 ) break;
-			const char dummy1 = fgetc( fp );
-			const char dummy2 = fgetc( fp );
-			const char dummy3 = fgetc( fp );
+			const char dummy1 = in.get();
+			const char dummy2 = in.get();
+			const char dummy3 = in.get();
 		}
 	}
 	
@@ -697,65 +696,65 @@ int ConvHtml( FILE *fp, std::ofstream& out, bool is_wordbank )
         std::string alternative;
 
 		// 本文フラグ
-		Flg1 = fgetc( fp );
+		Flg1 = in.get();
 	
 		if ( Flg1 & 0x01 ){ // 小見出し
-			const char Flg2 = fgetc( fp );
+			const char Flg2 = in.get();
 			if ( Flg2 & 0x01 ){ // 見出し: 小見出しは定義語とする
                 subtitle = "<span class=\"subtitle\">";
-                subtitle += decode( fp );
+                subtitle += decode(in);
                 subtitle += "</span>";
 			}
 			if ( Flg2 & 0x02 ){ // 別見出し
 				if ( ! subtitle.empty()) { subtitle += ' '; }
-                subtitle += decode( fp );
+                subtitle += decode(in);
 			}
 			if ( Flg2 & 0x08 ){ // 品詞; Word Class
 				hinshi = "<span class=\"wordclass\">";
-                hinshi += decode( fp );
+                hinshi += decode(in);
                 hinshi += ":</span>";
 			}
 			if ( Flg2 & 0x10 ){ // 変化形
-				std::string dummy = decode( fp );
+				std::string dummy = decode(in);
                 if ( ! dummy.empty()) {
                     //printf("VAR %s %s\n", title.c_str(), dummy.c_str());
                 }
 			}
 			if ( Flg2 & 0x20 ){ // 見出し全体の説明
-                explain = decode( fp );
+                explain = decode(in);
 			}
 		}
 		// 用法
 		if ( Flg1 & 0x02 ){
-			const char Flg2 = fgetc( fp );
+			const char Flg2 = in.get();
 			if ( Flg2 & 0x01 ){ // 特記事項; Alternative forms
-				alternative = decode( fp );
+				alternative = decode(in);
 			}
 			if ( Flg2 & 0x02 ){ // 異形
-				std::string dummy = decode( fp );
+				std::string dummy = decode(in);
                 // never come to here
 			}
 			if ( Flg2 & 0x04 ){ // 分綴
-				std::string dummy = decode( fp );
+				std::string dummy = decode(in);
                 if ( ! dummy.empty()) {
                     //printf("BS %s\n", dummy.c_str());
                 }
 			}
 			if ( Flg2 & 0x08 ){ // 注釈
-				std::string dummy = decode( fp );
+				std::string dummy = decode(in);
                 // never come to here
 			}
 			if ( Flg2 & 0x10 ){ // 用法: disapproval, emphasis, etc
-				std::string dummy = decode( fp );
+				std::string dummy = decode(in);
                 if ( ! dummy.empty()) {
                     //printf("YH %s\n", dummy.c_str());
                 }
 			}
 			if ( Flg2 & 0x20 ){ // ？？
-				const char dummy1 = fgetc( fp );
+				const char dummy1 = in.get();
 			}
 			if ( Flg2 & 0x80 ){ // 番号または記号
-				subno = decode( fp );
+				subno = decode(in);
 			}
 		}
 
@@ -791,28 +790,28 @@ int ConvHtml( FILE *fp, std::ofstream& out, bool is_wordbank )
 		
 		/* 0x04 */
 		if ( Flg1 & 0x04 ){
-			const char Flg2 = fgetc( fp );
-			std::string dummy = decode( fp );
+			const char Flg2 = in.get();
+			std::string dummy = decode(in);
             // never come to here
 		}
 		/* 本文 */
 		if ( Flg1 & 0x10 ){
-			const char Flg2 = fgetc( fp );
+			const char Flg2 = in.get();
 			if ( Flg2 & 0x01 ){ // 意味
-				out << "  <p>" << decode( fp ) << "</p>" << std::endl;
+				out << "  <p>" << decode(in) << "</p>" << std::endl;
 			}
 			if ( Flg2 & 0x02 ){ // 例文
-				const int cnt = fgetc(fp);
+				const int cnt = in.get();
                 if ( is_wordbank ){
                     for (int j = 0; j < cnt; ++j){
-                        std::string t = decode(fp);
+                        std::string t = decode(in);
 						out << "<dt>" << title << "</dt>" << std::endl;
 						out << "<dd><p>" << t << "</p></dd>" << std::endl;
 					}
 				} else {
                     std::string examples;
                     for (int j = 0; j < cnt; ++j){
-                        std::string t = decode(fp);
+                        std::string t = decode(in);
                         examples += "<li>";
                         examples += t;
                         examples += "</li>";
@@ -823,46 +822,44 @@ int ConvHtml( FILE *fp, std::ofstream& out, bool is_wordbank )
 			if ( Flg2 & 0x04 ){ // 表
 			}
 			if ( Flg2 & 0x08 ){ // 参照 ex: "BRIT; in AM, use <b>rambunctious</b>"
-				const int cnt = fgetc( fp );
+				const int cnt = in.get();
 				for (int j = 0; j < cnt; ++j){
-					std::string dummy = decode( fp );
+					std::string dummy = decode(in);
                     //printf("%s\n", dummy.c_str() );
 				}
 			}
 			if ( Flg2 & 0x10 ){ // ？？
-				const int cnt = fgetc( fp );
+				const int cnt = in.get();
 				for (int j = 0; j < cnt; ++j){
-					out << "  <p><i>" << decode(fp) << "</i></p>" << std::endl;
+					out << "  <p><i>" << decode(in) << "</i></p>" << std::endl;
 				}
 			}
 			if ( Flg2 & 0x40 ){ // 参照
-				out << "  <p>" << decode(fp) << "</p>" << std::endl;
+				out << "  <p>" << decode(in) << "</p>" << std::endl;
 			}
 		}
 		/* 関連語 */
 		if ( Flg1 & 0x40 ){
-			const char Flg2 = fgetc( fp );
+			const char Flg2 = in.get();
 			if ( Flg2 & 0x01 ){ // 同義語
-				out << "  <p class=\"synonyms\">＝ " << decode(fp) << "</p>" << std::endl;
+				out << "  <p class=\"synonyms\">＝ " << decode(in) << "</p>" << std::endl;
 			}
 			if ( Flg2 & 0x02 ){ // 同義語
-                out << "  <p class=\"antonyms\">⇔ " << decode(fp) << "</p>" << std::endl;
+                out << "  <p class=\"antonyms\">⇔ " << decode(in) << "</p>" << std::endl;
 			}
 		}
 		/* 画像 */
 		if ( Flg1 & 0x80 ){
-			const char Flg2 = fgetc( fp );
-			const char dummy1 = fgetc( fp );
-			const char dummy2 = fgetc( fp );
-			const char dummy3 = fgetc( fp );
-			const char dummy4 = fgetc( fp );
+			const char Flg2 = in.get();
+			const char dummy1 = in.get();
+			const char dummy2 = in.get();
+			const char dummy3 = in.get();
+			const char dummy4 = in.get();
 		}
 	}
 	if ( !is_wordbank ){
 		out << "</d:entry>" << std::endl;
 	}
-	
-	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -879,9 +876,8 @@ int main(int argc, char *argv[])
 	}
 	
 	/* 入力ファイル */
-    std::string infile(argv[1]);
-	FILE* fp = fopen( infile.c_str(), "rb" );
-	if ( ! fp ) {
+    std::ifstream in(argv[1], std::ios_base::binary);
+	if ( ! in.good() ) {
 		printf( "入力ファイルがオープンできない\n" );
 		return 1;
 	}
@@ -911,20 +907,20 @@ int main(int argc, char *argv[])
     cHead header;
 
 	// ヘッダを読む
-	fread( &header, sizeof( cHead ), 1, fp );
+	in.read(reinterpret_cast<char*>(&header), sizeof header);
 	
 	// インデックス部へシーク
-	fseek( fp, header.IndexPos, SEEK_SET );
+	in.seekg(header.IndexPos, std::ios_base::beg);
 	
 	// ベーステーブルを読む
 	for (int i = 0; i < header.IndexBaseNum; ++i){
-		fread( &Base[i], 4, 1, fp );
+		in.read(reinterpret_cast<char*>(&Base[i]), 4);
 	}
 
 	// オフセットテーブルを読む
 	for (int i = 0;i < header.IndexBaseNum; ++i){
 		for (int j = 0; j < OffsetNum; ++j){
-			fread( &Offset[i * OffsetNum + j], 2, 1, fp );
+			in.read(reinterpret_cast<char*>(&Offset[i * OffsetNum + j]), 2);
 		}
 	}
 
@@ -937,14 +933,11 @@ int main(int argc, char *argv[])
 			if ( header.IndexOffsetNum - 1 <= i * OffsetNum + j ) break;
 			
 			/* データ部へシーク */
-			int st = fseek( fp, header.DataPos + Base[i] + Offset[i * OffsetNum + j] * 4, SEEK_SET );
-			if ( st ){
+			in.seekg(header.DataPos + Base[i] + Offset[i * OffsetNum + j] * 4, std::ios_base::beg);
+			if ( ! in.good()){
 				printf( "SEEK ERROR: i=%d j=%d\n", i, j );
 			}
-			st = ConvHtml( fp, out, is_wordbank );
-			if ( st ){
-				printf( "CONV ERROR: i=%d j=%d\n", i, j );
-			}
+			ConvHtml(in, out, is_wordbank);
             if (i==133 && j==109) goto END;
 		}
 	}
@@ -952,7 +945,7 @@ END:
 	out << "</d:dictionary>" << std::endl;
 	
 	/* 後始末 */
-	fclose( fp );
+	in.close();
 	out.close();
 }
 
